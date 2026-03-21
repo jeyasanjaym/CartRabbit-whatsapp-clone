@@ -74,8 +74,10 @@ async function main() {
   await mongoose.connect(MONGODB_URI);
   console.log('MongoDB connected');
 
-  server.listen(PORT, () => {
-    console.log(`API + Socket.IO on http://localhost:${PORT}`);
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
