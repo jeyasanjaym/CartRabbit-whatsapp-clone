@@ -1,0 +1,30 @@
+.layout {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  border-left: 1px solid var(--wa-border);
+  border-right: 1px solid var(--wa-border);
+}
+
+.banner {
+  background: #3d3b1e;
+  color: #f5e6a3;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    flex-direction: column;
+  }
+}
