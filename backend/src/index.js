@@ -65,8 +65,14 @@ function emitNewMessage(message) {
 app.locals.emitNewMessage = emitNewMessage;
 
 async function main() {
+  console.log('Starting server...');
+  console.log('Environment variables check:');
+  console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+  console.log('PORT:', process.env.PORT || 'Not set (will use 5000)');
+  console.log('NODE_ENV:', process.env.NODE_ENV || 'Not set');
+  
   await mongoose.connect(MONGODB_URI);
-  console.log("MongoDB connected");
+  console.log('MongoDB connected');
 
   server.listen(PORT, () => {
     console.log(`API + Socket.IO on http://localhost:${PORT}`);
@@ -74,6 +80,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error('Server startup failed:', err.message);
+  console.error('Full error:', err);
   process.exit(1);
 });
