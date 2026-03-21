@@ -3,29 +3,29 @@ import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema(
   {
     sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: true,
+      ref: 'User'
     },
     receiver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: true,
+      ref: 'User'
     },
-    content: {
+    text: {
       type: String,
       required: true,
       trim: true,
       maxlength: 4000,
     },
-    createdAt: {
+    timestamp: {
       type: Date,
       default: Date.now,
     },
   },
-  { timestamps: false }
+  { versionKey: false }
 );
 
-messageSchema.index({ sender: 1, receiver: 1, createdAt: 1 });
+messageSchema.index({ sender: 1, receiver: 1, timestamp: 1 });
 
 export default mongoose.model("Message", messageSchema);

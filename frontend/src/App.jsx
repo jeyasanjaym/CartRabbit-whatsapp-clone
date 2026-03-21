@@ -1,17 +1,18 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import Login from "./pages/Login.jsx";
-import Chat from "./pages/Chat.jsx";
-import { getStoredUser } from "./lib/storage.js";
+import { useAuth } from "./context/AuthContext.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import VerifyOtpPage from "./pages/VerifyOtpPage.jsx";
+import ChatDashboardPage from "./pages/ChatDashboardPage.jsx";
 
-function RequireChat({ children }) {
-  const u = getStoredUser();
-  if (!u?._id) return <Navigate to="/" replace />;
+function RequireAuth({ children }) {
+  const { user } = useAuth();
+  if (!user?._id) return <Navigate to="/" replace />;
   return children;
 }
 
 function GuestOnly({ children }) {
-  const u = getStoredUser();
-  if (u?._id) return <Navigate to="/chat" replace />;
+  const { user } = useAuth();
+  if (user?._id) return <Navigate to="/chat" replace />;
   return children;
 }
 
@@ -22,16 +23,24 @@ export default function App() {
         path="/"
         element={
           <GuestOnly>
-            <Login />
+            <LoginPage />
+          </GuestOnly>
+        }
+      />
+      <Route
+        path="/verify"
+        element={
+          <GuestOnly>
+            <VerifyOtpPage />
           </GuestOnly>
         }
       />
       <Route
         path="/chat"
         element={
-          <RequireChat>
-            <Chat />
-          </RequireChat>
+          <RequireAuth>
+            <ChatDashboardPage />
+          </RequireAuth>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

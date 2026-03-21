@@ -1,43 +1,51 @@
 import { Router } from "express";
 import User from "../models/User.js";
+import Message from "../models/Message.js";
 
 const router = Router();
 
-router.post("/", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const raw = req.body?.username ?? req.body?.email;
-    const username =
-      typeof raw === "string" ? raw.trim() : String(raw ?? "").trim();
+    const currentUsername = req.query.currentUsername;
+    const query = currentUsername ? { username: { $ne: currentUsername } } : {};
+    const users = await User.find(query).sort({ username: 1 }).lean();
 
-    if (!username) {
-      return res.status(400).json({ error: "Username is required" });
-    }
+    const usersWithMeta = await Promise.all(
+      users.map(async (u) => {
+        if (!currentUsername) {
+          return { ...u, lastMessage: null };
+        }
+        const lastMessage = await Message.findOne({
+          $or: [
+            { sender: currentUsername, receiver: u.username },
+            { sender: u.username, receiver: currentUsername },
+          ],
+        })
+          .sort({ timestamp: -1 })
+          .lean();
+        return { ...u, lastMessage };
+      })
+    );
 
-    const existing = await User.findOne({ username });
-    if (existing) {
-      return res.status(200).json({ user: existing });
-    }
-
-    const user = await User.create({ username });
-    return res.status(201).json({ user });
-  } catch (err) {
-    if (err.code === 11000) {
-      const u = await User.findOne({ username: String(req.body?.username ?? "").trim() });
-      if (u) return res.status(200).json({ user: u });
-      return res.status(409).json({ error: "Username already taken" });
-    }
-    console.error(err);
-    return res.status(500).json({ error: "Failed to create user" });
-  }
-});
-
-router.get("/", async (_req, res) => {
-  try {
-    const users = await User.find().sort({ username: 1 }).lean();
-    return res.json({ users });
+    return res.json({ users: usersWithMeta });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+router.get("/:username", async (req, res) => {
+  try {
+    const username = req.params.username;
+    if (!username) {
+      return res.status(400).json({ error: "Invalid username" });
+    }
+    const user = await User.findOne({ username }).lean();
+    if (!user) return res.status(404).json({ error: "User not found" });
+    return res.json({ user });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to fetch user" });
   }
 });
 

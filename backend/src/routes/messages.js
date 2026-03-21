@@ -1,5 +1,4 @@
 import { Router } from "express";
-import mongoose from "mongoose";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 
@@ -7,46 +6,32 @@ const router = Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { senderId, receiverId, content } = req.body ?? {};
-    const text = typeof content === "string" ? content.trim() : "";
+    const { sender, receiver, text } = req.body;
 
-    if (!senderId || !receiverId) {
-      return res
-        .status(400)
-        .json({ error: "senderId and receiverId are required" });
+    if (!sender || !receiver || !text) {
+      return res.status(400).json({ error: "sender, receiver, and text are required" });
     }
-    if (!mongoose.isValidObjectId(senderId) || !mongoose.isValidObjectId(receiverId)) {
-      return res.status(400).json({ error: "Invalid user id" });
-    }
-    if (senderId === receiverId) {
+
+    if (sender === receiver) {
       return res.status(400).json({ error: "Cannot message yourself" });
     }
-    if (!text) {
-      return res.status(400).json({ error: "Message cannot be empty" });
-    }
 
-    const [sender, receiver] = await Promise.all([
-      User.findById(senderId),
-      User.findById(receiverId),
+    const [senderUser, receiverUser] = await Promise.all([
+      User.findOne({ username: sender }),
+      User.findOne({ username: receiver }),
     ]);
-    if (!sender || !receiver) {
+    if (!senderUser || !receiverUser) {
       return res.status(404).json({ error: "User not found" });
     }
 
     const message = await Message.create({
-      sender: senderId,
-      receiver: receiverId,
-      content: text,
+      sender,
+      receiver,
+      text: text.trim(),
     });
 
-    const populated = await Message.findById(message._id)
-      .populate("sender", "username")
-      .populate("receiver", "username")
-      .lean();
-
-    req.app.locals.emitNewMessage?.(populated);
-
-    return res.status(201).json({ message: populated });
+    req.app.locals.emitNewMessage?.(message.toObject());
+    return res.status(201).json({ message });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to send message" });
@@ -59,19 +44,13 @@ router.get("/", async (req, res) => {
     if (!userA || !userB) {
       return res.status(400).json({ error: "userA and userB query params required" });
     }
-    if (!mongoose.isValidObjectId(userA) || !mongoose.isValidObjectId(userB)) {
-      return res.status(400).json({ error: "Invalid user id" });
-    }
-
     const messages = await Message.find({
       $or: [
         { sender: userA, receiver: userB },
         { sender: userB, receiver: userA },
       ],
     })
-      .sort({ createdAt: 1 })
-      .populate("sender", "username")
-      .populate("receiver", "username")
+      .sort({ timestamp: 1 })
       .lean();
 
     return res.json({ messages });
