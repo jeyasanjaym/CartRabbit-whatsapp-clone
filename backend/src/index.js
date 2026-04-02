@@ -65,6 +65,55 @@ try {
       }
     });
 
+    // -----------------------------
+    // Voice/Video Call Signaling
+    // -----------------------------
+    // MVP: 1:1 calls where Socket.IO room is based on username: `user:<username>`
+    socket.on("call:offer", ({ from, to, mode, offer }) => {
+      try {
+        if (!from || !to || !mode || !offer) return;
+        io.to(`user:${to}`).emit("call:offer", { from, to, mode, offer });
+      } catch (error) {
+        console.error("Error in call:offer:", error);
+      }
+    });
+
+    socket.on("call:answer", ({ from, to, answer }) => {
+      try {
+        if (!from || !to || !answer) return;
+        io.to(`user:${to}`).emit("call:answer", { from, to, answer });
+      } catch (error) {
+        console.error("Error in call:answer:", error);
+      }
+    });
+
+    socket.on("call:ice", ({ from, to, candidate }) => {
+      try {
+        if (!from || !to || !candidate) return;
+        io.to(`user:${to}`).emit("call:ice", { from, to, candidate });
+      } catch (error) {
+        console.error("Error in call:ice:", error);
+      }
+    });
+
+    socket.on("call:decline", ({ from, to, reason }) => {
+      try {
+        if (!from || !to) return;
+        io.to(`user:${to}`).emit("call:decline", { from, to, reason });
+      } catch (error) {
+        console.error("Error in call:decline:", error);
+      }
+    });
+
+    socket.on("call:end", ({ from, to }) => {
+      try {
+        if (!from || !to) return;
+        io.to(`user:${to}`).emit("call:end", { from, to });
+      } catch (error) {
+        console.error("Error in call:end:", error);
+      }
+    });
+
     socket.on("disconnect", async () => {
       try {
         const username = socket.data.username;
@@ -105,10 +154,12 @@ try {
   async function main() {
     try {
       console.log('Connecting to MongoDB...');
-      await mongoose.connect(MONGODB_URI);
+      await mongoose.connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 15_000,
+      });
       console.log('MongoDB connected successfully');
 
-      app.listen(PORT, () => {
+      server.listen(PORT, () => {
         console.log(`Server running successfully on port ${PORT}`);
         console.log(`Health check: http://localhost:${PORT}/api/health`);
       });

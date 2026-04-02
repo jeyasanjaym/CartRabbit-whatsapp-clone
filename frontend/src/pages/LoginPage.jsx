@@ -35,7 +35,35 @@ export default function LoginPage() {
       
       navigate("/chat");
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed.");
+      const res = err.response;
+      const d = res?.data;
+      let apiError = null;
+      if (d != null && typeof d === "object") {
+        apiError = d.details || d.message || d.error;
+        if (!apiError && Object.keys(d).length > 0) {
+          try {
+            apiError = JSON.stringify(d);
+          } catch {
+            apiError = null;
+          }
+        }
+      } else if (typeof d === "string" && d.trim()) {
+        apiError = d.trim().slice(0, 400);
+      }
+      const unreachable =
+        err.code === "ERR_NETWORK" ||
+        err.message === "Network Error" ||
+        !res;
+      setError(
+        apiError ||
+          (unreachable
+            ? "Cannot reach the API. Start the backend (npm run dev in backend), ensure MongoDB is configured in .env, and open the app at http://localhost:5173"
+            : res?.status
+              ? res.status === 502
+                ? `API proxy (502): backend not running or it crashed. Fix MongoDB Atlas → Network Access (add your IP), restart with "npm run dev" in the backend folder, wait for "MongoDB connected successfully".`
+                : `Server error (HTTP ${res.status}). Open the backend terminal: Atlas IP whitelist and MONGODB_URI are the usual causes; copy any stack trace if you need help.`
+              : err.message || "Login failed.")
+      );
     } finally {
       setLoading(false);
     }
